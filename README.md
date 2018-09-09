@@ -14,3 +14,6 @@ pip install requirements.txt
 ```
 python data_exploratory.py
 ```
+
+## To do
+implementate the [semantic segmentation](algorithms/object\ detection) and [object detection](algorithms/semantic\ segmentation) algorithms.
