@@ -33,7 +33,7 @@ def parse_data(df):
         pid = row['patientId']
         if pid not in parsed:
             parsed[pid] = {
-                'dicom': 'input/stage_1_train_images/%s.dcm' % pid,
+                'dicom': 'data/stage_1_train_images/%s.dcm' % pid,
                 'label': row['Target'],
                 'boxes': []}
 
@@ -93,7 +93,7 @@ if __name__ == "__main__":
 	print ('Each row contains a patientId, a target a target (either 0 or 1 for absence or presence of pneumonia, respectively) and the corresponding abnormality bounding box defined by the upper-left hand corner (x, y) coordinate and its corresponding width and height')
 	print ''
 
-	df = pd.read_csv('input/stage_1_train_labels.csv')
+	df = pd.read_csv('data/stage_1_train_labels.csv')
 	print('Example of a patient with no pneumonia:')
 	print(df.iloc[0])
 	print ''
@@ -116,7 +116,7 @@ if __name__ == "__main__":
 	patientId = df['patientId'][0]
 	print('For patient with id: ' + str(patientId))
 
-	dcm_file = 'input/stage_1_train_images/%s.dcm' % patientId
+	dcm_file = 'data/stage_1_train_images/%s.dcm' % patientId
 	dcm_data = pydicom.read_file(dcm_file)
 
 	print(dcm_data)
@@ -133,7 +133,7 @@ if __name__ == "__main__":
 	draw(parsed['00436515-870c-4b36-a041-de91049b9ab4'])
 	print ''
 	print('Each bounding box without pneumonia is further categorized into normal or no lung opacity / not normal.')
-	df_detailed = pd.read_csv('input/stage_1_detailed_class_info.csv')
+	df_detailed = pd.read_csv('data/stage_1_detailed_class_info.csv')
 	summary = {}
 	for n, row in df_detailed.iterrows():
 	    if row['class'] not in summary:
