@@ -78,6 +78,9 @@ def iou_loss(y_true, y_pred):
 
 # combine bce loss and iou loss
 def iou_bce_loss(y_true, y_pred):
+	print 'keras'
+	print keras.losses.binary_crossentropy(y_true, y_pred)
+	print iou_loss(y_true, y_pred)
 	return 0.4 * keras.losses.binary_crossentropy(y_true, y_pred) + 0.6 * iou_loss(y_true, y_pred)
 
 # mean iou as a metric
@@ -141,22 +144,7 @@ if __name__ == "__main__":
 		print ('model not loaded')
 
 	history = model.fit_generator(train_gen, validation_data=valid_gen, callbacks=[learning_rate, cp_callback], epochs=200, shuffle=True)
-	'''
-	plt.figure(figsize=(12,4))
-	plt.subplot(131)
-	plt.plot(history.epoch, history.history["loss"], label="Train loss")
-	plt.plot(history.epoch, history.history["val_loss"], label="Valid loss")
-	plt.legend()
-	plt.subplot(132)
-	plt.plot(history.epoch, history.history["acc"], label="Train accuracy")
-	plt.plot(history.epoch, history.history["val_acc"], label="Valid accuracy")
-	plt.legend()
-	plt.subplot(133)
-	plt.plot(history.epoch, history.history["mean_iou"], label="Train iou")
-	plt.plot(history.epoch, history.history["val_mean_iou"], label="Valid iou")
-	plt.legend()
-	plt.show()
-	'''
+
 
 	# load and shuffle filenames
 	folder = '../../data/stage_1_test_images'
@@ -188,10 +176,11 @@ if __name__ == "__main__":
 				y, x, y2, x2 = region.bbox
 				height = y2 - y
 				width = x2 - x
-				# proxy for confidence score
-				conf = np.mean(pred[y:y+height, x:x+width])
-				# add to predictionString
-				predictionString += str(conf) + ' ' + str(x) + ' ' + str(y) + ' ' + str(width) + ' ' + str(height) + ' '
+				if width*height > 2500:
+					# proxy for confidence score
+					conf = np.mean(pred[y:y+height, x:x+width])
+					# add to predictionString
+					predictionString += str(conf) + ' ' + str(x) + ' ' + str(y) + ' ' + str(width) + ' ' + str(height) + ' '
 			# add filename and predictionString to dictionary
 			filename = filename.split('.')[0]
 			submission_dict[filename] = predictionString

@@ -83,13 +83,14 @@ class PneumoniaGenerator(keras.utils.Sequence):
                 starty = int((s11-s1)/2)
                 startx = int((s22-s2)/2)
                 img = img[starty:starty+s1,startx:startx+s2]
+                msk = msk[starty:starty+s1,startx:startx+s2]
          
 
 
         # add trailing channel dimension
         img = np.expand_dims(img, -1)
         msk = np.expand_dims(msk, -1)
-
+        
         return img, msk
     
 
