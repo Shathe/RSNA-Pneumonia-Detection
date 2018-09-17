@@ -28,39 +28,41 @@ def FCMnasNet(n_classes=1000, input_shape=(224, 224, 3), alpha=1):
 	x = MBConv_idskip(x, filters=96, kernel_size=3,  strides=1, filters_multiplier=6, alpha=alpha)
 	x3 = MBConv_idskip(x, filters=96, kernel_size=3,  strides=1, filters_multiplier=6, alpha=alpha)
 	# MBConv6 5x5
-	x = MBConv_idskip(x3, filters=192, kernel_size=5,  strides=2, filters_multiplier=6, alpha=alpha)
+	
+	x = tf.keras.layers.add([x3, conv_bn(x2, 96*alpha, 3,   strides=2)])
+	x = tf.keras.layers.add([x, conv_bn(x1, 96*alpha, 5,   strides=4)])
+	x = MBConv_idskip(x, filters=192, kernel_size=5,  strides=2, filters_multiplier=6, alpha=alpha)
 	x = MBConv_idskip(x, filters=192, kernel_size=5,  strides=1, filters_multiplier=6, alpha=alpha)
 	x = MBConv_idskip(x, filters=192, kernel_size=5,  strides=1, filters_multiplier=6, alpha=alpha)
 	x = MBConv_idskip(x, filters=192, kernel_size=5,  strides=1, filters_multiplier=6, alpha=alpha)
 	x = MBConv_idskip(x, filters=192, kernel_size=5,  strides=1, filters_multiplier=6, alpha=alpha)
 	# MBConv6 3x3
 	x = MBConv_idskip(x, filters=320, kernel_size=3,  strides=1, filters_multiplier=6, alpha=alpha)
-	x = transpose_conv_bn(x, filters=192, kernel_size=3,  strides=2, alpha=1, activation=True)
-	x = tf.keras.layers.concatenate([x, x3])
+	x = transpose_conv_bn(x, filters=192, kernel_size=3,  strides=2, alpha=alpha, activation=True)
+
+	x = tf.keras.layers.add([x, conv_bn(x3, 192*alpha, 3,   strides=1)])
 	x = MBConv_idskip(x, filters=192, kernel_size=3,  strides=1, filters_multiplier=6, alpha=alpha)
 	x = MBConv_idskip(x, filters=192, kernel_size=3,  strides=1, filters_multiplier=6, alpha=alpha)
 
-	x = transpose_conv_bn(x, filters=96, kernel_size=5,  strides=2, alpha=1, activation=True)
-	x = tf.keras.layers.concatenate([x, x2])
+	x = transpose_conv_bn(x, filters=96, kernel_size=5,  strides=2, alpha=alpha, activation=True)
+	x = tf.keras.layers.add([x, conv_bn(x2, 96*alpha, 3,   strides=1)])
 	x = MBConv_idskip(x, filters=96, kernel_size=5,  strides=1, filters_multiplier=6, alpha=alpha)
 	x = MBConv_idskip(x, filters=96, kernel_size=5,  strides=1, filters_multiplier=6, alpha=alpha)
 	x = MBConv_idskip(x, filters=80, kernel_size=3,  strides=1, filters_multiplier=3, alpha=alpha)
 	x = MBConv_idskip(x, filters=80, kernel_size=3,  strides=1, filters_multiplier=3, alpha=alpha)
 
-	x = transpose_conv_bn(x, filters=40, kernel_size=5,  strides=2, alpha=1, activation=True)
-	x = tf.keras.layers.concatenate([x, x1])
+	x = transpose_conv_bn(x, filters=40, kernel_size=5,  strides=2, alpha=alpha, activation=True)
+	x = tf.keras.layers.add([x, conv_bn(x1, 40*alpha, 3,   strides=1)])
 	x = MBConv_idskip(x, filters=40, kernel_size=5,  strides=1, filters_multiplier=3, alpha=alpha)
 	x = MBConv_idskip(x, filters=40, kernel_size=5,  strides=1, filters_multiplier=3, alpha=alpha)
 
-	x = transpose_conv_bn(x, filters=24, kernel_size=3,  strides=2, alpha=1, activation=True)
+	x = transpose_conv_bn(x, filters=24, kernel_size=3,  strides=2, alpha=alpha, activation=True)
 	x = MBConv_idskip(x, filters=24, kernel_size=3,  strides=1, filters_multiplier=3, alpha=alpha)
 
-	x = transpose_conv_bn(x, filters=16, kernel_size=3,  strides=2, alpha=1, activation=True)
+	x = transpose_conv_bn(x, filters=16, kernel_size=3,  strides=2, alpha=alpha, activation=True)
 	x = MBConv_idskip(x, filters=16, kernel_size=3,  strides=1, filters_multiplier=3, alpha=alpha)
-
 	predictions = layers.Conv2D(filters=1, kernel_size=1, strides=1, padding='same',use_bias=True, activation=tf.keras.activations.sigmoid)(x)
 
-	print (predictions)
 	return models.Model(inputs=inputs, outputs=predictions)
 
 
@@ -90,6 +92,9 @@ def conv_bn(x, filters, kernel_size,  strides=1, alpha=1, activation=True):
 	x = layers.BatchNormalization(epsilon=1e-3, momentum=0.999)(x)  
 	if activation:
 		x = layers.ReLU(max_value=6)(x)
+
+	
+
 	return x
 
 
@@ -201,7 +206,7 @@ def MBConv_idskip(x_input, filters, kernel_size,  strides=1, filters_multiplier=
 	if strides==1 and x.shape[3] == x_input.shape[3]:
 		x = layers.add([x_input, x])
 
-	x = layers.Dropout(rate=0.1)(x)
+	x = layers.Dropout(rate=0.10)(x)  
 	return x
 
 # This function is taken from the original tf repo.

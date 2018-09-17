@@ -14,8 +14,8 @@ from tensorflow import keras
 import cv2
 import random
 from matplotlib import pyplot as plt
-np.random.seed(7)
-random.seed(7)
+np.random.seed(8)
+random.seed(8)
 
 '''
 The code below loads the Pneumonia table and transforms it into a dictionary.
@@ -62,9 +62,9 @@ def get_pneumonia_locations(file_table_pneumonia):
 
 # cosine learning rate annealing
 def cosine_annealing(x):
-	lr = 0.001
-	epochs = 200
-	now_lr = (lr - 0.000007) * math.pow(1 - x / 1. / epochs, 0.9) + 0.000007
+	lr = 0.00015
+	epochs = 100
+	now_lr = (lr - 0.00001) * math.pow(1 - x / 1. / epochs, 0.9) + 0.00001
 	print ('lr: ' + str(now_lr))
 	return  now_lr
 
@@ -78,10 +78,10 @@ def iou_loss(y_true, y_pred):
 
 # combine bce loss and iou loss
 def iou_bce_loss(y_true, y_pred):
-	print 'keras'
-	print keras.losses.binary_crossentropy(y_true, y_pred)
-	print iou_loss(y_true, y_pred)
-	return 0.4 * keras.losses.binary_crossentropy(y_true, y_pred) + 0.6 * iou_loss(y_true, y_pred)
+	tumor_factor = tf.reduce_sum(y_pred) / (tf.reduce_sum(1 - y_pred) + 1)
+	binary_ross_entropy =  - tf.reduce_mean(tumor_factor * y_true*tf.log(y_pred) + (1-y_true)* tf.log(1-y_pred)) 
+	iou_loss_ = iou_loss(y_true, y_pred)
+	return binary_ross_entropy*0.5 + 0.5*iou_loss_ + 0.1*keras.losses.binary_crossentropy(y_true, y_pred)
 
 # mean iou as a metric
 def mean_iou(y_true, y_pred):
@@ -90,6 +90,8 @@ def mean_iou(y_true, y_pred):
 	union = tf.reduce_sum(y_true, axis=[1, 2, 3]) + tf.reduce_sum(y_pred, axis=[1, 2, 3])
 	smooth = tf.ones(tf.shape(intersect))
 	return tf.reduce_mean((intersect + smooth) / (union - intersect + smooth))
+
+
 
 if __name__ == "__main__":
 
@@ -103,7 +105,7 @@ if __name__ == "__main__":
 	random.shuffle(filenames)
 	# split into train and validation filenames
 	n_elems = len(filenames)
-	percentage_validation = 0.05
+	percentage_validation = 0.0004
 	n_valid_samples = int(n_elems * percentage_validation)
 	n_train_samples = len(filenames) - n_valid_samples
 	train_filenames = filenames[n_valid_samples:]
@@ -143,8 +145,42 @@ if __name__ == "__main__":
 	except Exception:
 		print ('model not loaded')
 
-	history = model.fit_generator(train_gen, validation_data=valid_gen, callbacks=[learning_rate, cp_callback], epochs=200, shuffle=True)
+	history = model.fit_generator(train_gen, validation_data=valid_gen, callbacks=[learning_rate, cp_callback], epochs=100, shuffle=True)
 
+	'''
+	
+	
+	# load and shuffle filenames
+	test_filenames = os.listdir(folder)
+	print('n train samples:', len(test_filenames))
+	BATCH_SIZE = 10
+	# create test generator with predict flag set to True
+	test_gen = PneumoniaGenerator.PneumoniaGenerator(folder, test_filenames, pneumonia_locations, batch_size=BATCH_SIZE, image_size=IMAGE_SIZE, shuffle=False, predict=False)
+
+	# create submission dictionary
+	submission_dict = {}
+	# loop through testset
+	for imgs, msk in test_gen:
+		# predict batch of images
+		preds = model.predict(imgs)
+		# loop through batch
+		for pred, mask in zip(preds, msk):
+			# resize predicted mask
+
+			pred = cv2.resize(pred, (1024, 1024), interpolation=cv2.INTER_NEAREST)
+			pred[pred>0.5] = 1
+			pred[pred<=0.5] = 0
+
+			cv2.imshow('image',pred)
+			cv2.imshow('mask',mask)
+			kernel = np.ones((7,7),np.uint8)
+			closing = cv2.morphologyEx(pred, cv2.MORPH_CLOSE, kernel)
+			cv2.imshow('closing',closing)
+
+			cv2.waitKey(0)
+			cv2.destroyAllWindows()
+	'''
+	
 
 	# load and shuffle filenames
 	folder = '../../data/stage_1_test_images'
@@ -165,9 +201,12 @@ if __name__ == "__main__":
 			# resize predicted mask
 
 			pred = cv2.resize(pred, (1024, 1024), interpolation=cv2.INTER_NEAREST)
-			# threshold predicted mask
+			kernel = np.ones((15,15),np.uint8)
+			pred = cv2.morphologyEx(pred, cv2.MORPH_CLOSE, kernel)
 			comp = pred[:, :] > 0.5
-			# apply connected components
+
+			# threshold predicted mask 
+			# apply connected components (for multiclass is the same masking every class in a loop)
 			comp = measure.label(comp, neighbors=8)
 			# apply bounding boxes
 			predictionString = ''
@@ -176,7 +215,7 @@ if __name__ == "__main__":
 				y, x, y2, x2 = region.bbox
 				height = y2 - y
 				width = x2 - x
-				if width*height > 2500:
+				if width*height>8000:
 					# proxy for confidence score
 					conf = np.mean(pred[y:y+height, x:x+width])
 					# add to predictionString

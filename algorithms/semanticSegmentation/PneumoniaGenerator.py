@@ -65,16 +65,17 @@ class PneumoniaGenerator(keras.utils.Sequence):
 
             # 50% of shift
             if random.random() > 0.5:
-                shift_1 = random.randint(-15, 15)
-                shift_2 = random.randint(-15, 15)
+                shift_1 = random.randint(-25, 25)
+                shift_2 = random.randint(-25, 25)
                 img = scipy.ndimage.shift(img, (shift_1,shift_2), mode='reflect')
                 msk = scipy.ndimage.shift(msk, (shift_1,shift_2), mode='reflect')
 
             # 50% of rotate
             if random.random() > 0.5:
-                rotation = random.randint(-10, 10)
+                rotation = random.randint(-15, 15)
                 img = scipy.ndimage.rotate(img, rotation, axes=(1, 0), mode='reflect')
                 msk = scipy.ndimage.rotate(msk, rotation, axes=(1, 0), mode='reflect')
+
 
             s11, s22 = img.shape 
 
@@ -87,10 +88,12 @@ class PneumoniaGenerator(keras.utils.Sequence):
          
 
 
+        img = img / 127.5 - 1
+
         # add trailing channel dimension
         img = np.expand_dims(img, -1)
         msk = np.expand_dims(msk, -1)
-        
+
         return img, msk
     
 
@@ -99,6 +102,7 @@ class PneumoniaGenerator(keras.utils.Sequence):
         img = pydicom.dcmread(os.path.join(self.folder, filename)).pixel_array
         # resize image
         img = cv2.resize(img, (self.image_size, self.image_size), interpolation=cv2.INTER_AREA)
+        img = img / 127.5 - 1
         # add trailing channel dimension
         img = np.expand_dims(img, -1)
         return img
